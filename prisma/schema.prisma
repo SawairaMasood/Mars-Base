@@ -1,0 +1,89 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Mission {
+  id            String          @id @default(uuid())
+  name          String
+  commanderName String          @default("Commander Shepard")
+  difficulty    String          @default("STANDARD") // BEGINNER, STANDARD, EXPERT
+  currentDay    Int             @default(1)
+  duration      Int             @default(30)
+  status        String          @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, FAILED
+  failureReason String?
+  score         Int             @default(0)
+  finalGrade    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  resourceState ResourceState?
+  actions       MissionAction[]
+  events        MissionEvent[]
+  snapshots     DailySnapshot[]
+}
+
+model ResourceState {
+  id        String   @id @default(uuid())
+  missionId String   @unique
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  oxygen    Float    @default(100.0)
+  water     Float    @default(100.0)
+  food      Float    @default(100.0)
+  power     Float    @default(100.0)
+  morale    Float    @default(85.0)
+  integrity Float    @default(90.0)
+  radiation Float    @default(20.0)
+  updatedAt DateTime @updatedAt
+}
+
+model MissionAction {
+  id              String   @id @default(uuid())
+  missionId       String
+  mission         Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  day             Int
+  actionType      String
+  description     String
+  resourceChanges String   // JSON string of { oxygen: +10, power: -15, etc. }
+  success         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model MissionEvent {
+  id                String   @id @default(uuid())
+  missionId         String
+  mission           Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  day               Int
+  eventType         String
+  severity          String   // LOW, MEDIUM, HIGH, CRITICAL
+  title             String
+  description       String
+  options           String   // JSON string of options [{ id, label, description, cost, outcome }]
+  selectedOption    String?
+  status            String   @default("ACTIVE") // ACTIVE, RESOLVED, IGNORED
+  impactDescription String?
+  createdAt         DateTime @default(now())
+}
+
+model DailySnapshot {
+  id        String   @id @default(uuid())
+  missionId String
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  day       Int
+  oxygen    Float
+  water     Float
+  food      Float
+  power     Float
+  morale    Float
+  integrity Float
+  radiation Float
+  score     Int      @default(0)
+  summary   String?
+  createdAt DateTime @default(now())
+
+  @@index([missionId, day])
+}
